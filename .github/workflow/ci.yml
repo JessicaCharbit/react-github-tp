@@ -1,25 +1,52 @@
-name: Deploy
+name: Deploy to EC2
 
 on:
   push:
     branches:
-      - main  # Déclenche le déploiement quand on pousse sur main
+      
+main
+pull_request:
+  branches:
+main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      
+name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+name: Update Packages
+      run: sudo apt-get update -y
 
-      - name: Deploy application
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git pull origin main && npm install && pm2 restart all"
+      
+name: Install SSH Client
+      run: sudo apt-get install -y openssh-client
+
+      
+name: Setup SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" | base64 --decode > $HOME/.ssh/id_rsa
+        chmod 600 $HOME/.ssh/id_rsa
+        ssh-keyscan -H "$SSH_HOST" >> $HOME/.ssh/known_hosts
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+
+      
+name: Deploy to EC2
+      run: |
+        ssh $SSH_USER@$SSH_HOST "cd $WORK_DIR && git pull origin $MAIN_BRANCH"
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        WORK_DIR: ${{ secrets.WORK_DIR }}
+        MAIN_BRANCH: ${{ secrets.MAIN_BRANCH }}
+
+      
+name: Cleanup SSH Key
+      run: rm -rf $HOME/.ssh
